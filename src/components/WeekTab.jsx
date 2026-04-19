@@ -19,7 +19,36 @@ function extractRankings(preds) {
   return []
 }
 
-export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefresh, debugData, remainingSchedule }) {
+function buildExplanation(player, isBigEvent, purse) {
+  const winPct = (player.winP * 100).toFixed(1)
+  const top10Pct = (player.top10P * 100).toFixed(0)
+  const ev = Math.round(player.expPrize / 1000)
+
+  if (player.saveWarning === 'hard' && player.bestFutureEvent) {
+    return `Strong pick this week (${winPct}% win, $${ev}k EV) but projected to earn more at ${player.bestFutureEvent} — consider saving.`
+  }
+  if (player.saveWarning === 'soft' && player.bestFutureEvent) {
+    return `Solid option with ${winPct}% win chance and $${ev}k expected prize. A future event may offer slightly better value, but reasonable to play here.`
+  }
+  if (player.saveWarning === 'soft' && !player.bestFutureEvent) {
+    return `Good pick this week. As an elite player, consider whether a better spot is coming before burning this pick.`
+  }
+  if (!player.saveWarning && player.isElite && isBigEvent) {
+    return `This is a good week to use ${player.name.split(' ').pop()} — elevated purse and their expected value here beats most future events.`
+  }
+  if (player.oppConflict) {
+    return `${winPct}% win probability and $${ev}k expected prize. Note: your opponent has already used this player, so no differentiation benefit.`
+  }
+  if (player.dgRank <= 10) {
+    return `Elite player with ${winPct}% win chance. ${top10Pct}% chance of a top-10 finish worth real money on a $${Math.round(purse/1e6)}M purse.`
+  }
+  if (player.winP >= 0.05) {
+    return `Solid upside — ${winPct}% win probability with a ${top10Pct}% top-10 chance. Good value pick this week.`
+  }
+  return `${top10Pct}% top-10 probability. Lower ceiling but reliable mid-tier option if you're saving elite picks.`
+}
+
+export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefresh, debugData, scheduleDebug, remainingSchedule }) {
   if (loading) return <div style={centered}>Loading tournament data...</div>
   if (error) return (
     <div style={centered}>
@@ -58,6 +87,9 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
           <div style={eventMeta}>
             {course && <span>{course} · </span>}
             <span>${(purse / 1_000_000).toFixed(0)}M purse</span>
+            {remainingSchedule.length > 0 && (
+              <span> · {remainingSchedule.length} events remaining</span>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -84,23 +116,34 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
             </div>
             {debugData && (
               <details style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                <summary style={{ cursor: 'pointer', marginBottom: 6 }}>Debug: raw API response</summary>
+                <summary style={{ cursor: 'pointer', marginBottom: 6 }}>Debug info</summary>
                 <pre style={{ overflow: 'auto', maxHeight: 240, background: '#f5f3ee', padding: 8, borderRadius: 4, fontSize: 11 }}>
                   {JSON.stringify({
-                    keys: Object.keys(debugData),
+                    predsKeys: Object.keys(debugData),
                     rankingsFound: rankings.length,
                     samplePlayer: rankings[0] ?? null,
                     bhf_type: typeof debugData.baseline_history_fit,
                     bhf_is_array: Array.isArray(debugData.baseline_history_fit),
-                    bhf_has_players: !!(debugData.baseline_history_fit?.players),
                     bhf_players_length: debugData.baseline_history_fit?.players?.length ?? 'n/a',
+                    scheduleKeys: scheduleDebug ? Object.keys(scheduleDebug) : 'null',
+                    remainingScheduleCount: remainingSchedule.length,
+                    sampleScheduleEvent: remainingSchedule[0] ?? null,
                   }, null, 2)}
                 </pre>
               </details>
             )}
           </div>
         ) : (
-          top10.map((p, i) => <RecRow key={p.name} player={p} rank={i + 1} isBigEvent={isBigEvent} />)
+          top10.map((p, i) => (
+            <RecRow
+              key={p.name}
+              player={p}
+              rank={i + 1}
+              isBigEvent={isBigEvent}
+              purse={purse}
+              explanation={buildExplanation(p, isBigEvent, purse)}
+            />
+          ))
         )}
       </div>
 
@@ -111,28 +154,18 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
   )
 }
 
-function RecRow({ player, rank, isBigEvent }) {
+function RecRow({ player, rank, isBigEvent, purse, explanation }) {
   const isTop3 = rank <= 3
 
-  // Build save warning message
-  let saveMsg = null
-  if (player.saveWarning === 'hard' && player.bestFutureEvent) {
-    saveMsg = `Strongly consider saving — higher EV at ${player.bestFutureEvent}`
-  } else if (player.saveWarning === 'soft' && player.bestFutureEvent) {
-    saveMsg = `Consider saving for ${player.bestFutureEvent}`
-  } else if (player.saveWarning === 'soft') {
-    saveMsg = 'Consider saving for an elevated event'
-  }
-
   return (
-    <div style={{ borderBottom: rank < 10 ? '1px solid var(--border)' : 'none', padding: '11px 0' }}>
+    <div style={{ borderBottom: rank < 10 ? '1px solid var(--border)' : 'none', padding: '12px 0' }}>
       <div style={recRow}>
         <div style={{ ...rankNum, color: isTop3 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{rank}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={playerName}>
             {player.name}
             {player.saveWarning === 'hard' && <Badge type="red">Save for later</Badge>}
-            {player.saveWarning === 'soft' && !isBigEvent && <Badge type="amber">Consider saving</Badge>}
+            {player.saveWarning === 'soft' && <Badge type="amber">Consider saving</Badge>}
             {!player.saveWarning && player.isElite && isBigEvent && <Badge type="green">Deploy now</Badge>}
             {player.oppConflict && <Badge type="blue">Opp. burned</Badge>}
           </div>
@@ -145,13 +178,16 @@ function RecRow({ player, rank, isBigEvent }) {
           <div style={scoreLabel}>exp. prize</div>
         </div>
       </div>
-      {saveMsg && (
+
+      <div style={explanationBox}>{explanation}</div>
+
+      {player.saveWarning && player.bestFutureEvent && (
         <div style={{
           ...saveNote,
           background: player.saveWarning === 'hard' ? 'var(--red-bg)' : 'var(--amber-bg)',
           color: player.saveWarning === 'hard' ? 'var(--red)' : 'var(--amber)',
         }}>
-          {saveMsg} — projected ${Math.round(player.bestFutureEV / 1000)}k EV there vs ${Math.round(player.expPrize / 1000)}k here
+          Best future spot: {player.bestFutureEvent} — projected ${Math.round(player.bestFutureEV / 1000)}k EV vs ${Math.round(player.expPrize / 1000)}k here
         </div>
       )}
     </div>
@@ -183,9 +219,10 @@ const sitOutBanner = { background: 'var(--amber-bg)', color: 'var(--amber)', bor
 const recRow = { display: 'flex', alignItems: 'center', gap: 12 }
 const rankNum = { fontSize: 17, fontWeight: 700, width: 28, textAlign: 'center', flexShrink: 0, fontFamily: 'Georgia, serif' }
 const playerName = { fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }
-const playerMeta = { fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'system-ui, sans-serif' }
+const playerMeta = { fontSize: 12, color: 'var(--text-muted)', marginTop: 3, fontFamily: 'system-ui, sans-serif' }
 const scoreVal = { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Georgia, serif' }
 const scoreLabel = { fontSize: 11, color: 'var(--text-muted)', fontFamily: 'system-ui, sans-serif' }
+const explanationBox = { fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'system-ui, sans-serif', lineHeight: 1.55, marginTop: 6, marginLeft: 40 }
 const saveNote = { fontSize: 12, borderRadius: 'var(--radius-sm)', padding: '5px 10px', marginTop: 6, marginLeft: 40, fontFamily: 'system-ui, sans-serif' }
 const btn = { padding: '8px 16px', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-sm)', background: 'var(--surface)', fontSize: 13, cursor: 'pointer', fontFamily: 'system-ui, sans-serif' }
 const refreshBtn = { padding: '5px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'transparent', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'system-ui, sans-serif' }

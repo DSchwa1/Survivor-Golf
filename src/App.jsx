@@ -23,9 +23,9 @@ export default function App() {
   const [playerPool, setPlayerPool] = useState([])
   const [remainingSchedule, setRemainingSchedule] = useState([])
   const [debugData, setDebugData] = useState(null)
+  const [scheduleDebug, setScheduleDebug] = useState(null)
 
   const { fetchAll, loading, error } = useDataGolf()
-
   const picksLeft = Math.max(0, SEASON_PICKS - myPicks.length)
 
   const loadData = useCallback(async () => {
@@ -35,15 +35,31 @@ export default function App() {
     const { field, preds: predsData, schedule, playerList } = result
 
     setDebugData(predsData)
+    setScheduleDebug(schedule)
     if (predsData) setPreds(predsData)
 
-    // Build remaining schedule (future elevated events + majors only)
-    if (schedule && schedule.schedule) {
+    // DataGolf schedule response: try multiple known shapes
+    // { schedule: [...] } or { seasons: [...] } or top-level array
+    if (schedule) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const upcoming = schedule.schedule.filter(e => {
-        if (!e.date) return false
-        const d = new Date(e.date)
+
+      let events = []
+      if (Array.isArray(schedule)) events = schedule
+      else if (Array.isArray(schedule.schedule)) events = schedule.schedule
+      else if (Array.isArray(schedule.seasons)) {
+        // Flatten seasons array
+        events = schedule.seasons.flatMap(s => s.events || s.schedule || [])
+      } else {
+        // Try any array value in the object
+        const firstArray = Object.values(schedule).find(v => Array.isArray(v))
+        if (firstArray) events = firstArray
+      }
+
+      const upcoming = events.filter(e => {
+        const dateStr = e.date || e.start_date || e.event_date
+        if (!dateStr) return true // include if no date
+        const d = new Date(dateStr)
         d.setHours(0, 0, 0, 0)
         return d > today
       })
@@ -79,15 +95,12 @@ export default function App() {
       setMyPicks(prev => [...prev, { name: player.name, dg_id: player.dg_id }])
     }
   }
-
   function removeMyPick(name) {
     setMyPicks(prev => prev.filter(p => p.name !== name))
   }
-
   function addOppPick(pick) {
     setOppPicks(prev => [...prev, pick])
   }
-
   function removeOppPick(i) {
     setOppPicks(prev => prev.filter((_, idx) => idx !== i))
   }
@@ -124,6 +137,7 @@ export default function App() {
               error={error}
               onRefresh={loadData}
               debugData={debugData}
+              scheduleDebug={scheduleDebug}
               remainingSchedule={remainingSchedule}
             />
           )}
