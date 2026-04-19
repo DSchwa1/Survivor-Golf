@@ -32,14 +32,12 @@ export default function InstructionsTab() {
           players by expected prize money. Check it each week before making your pick.
         </Section>
         <Section step="3" title="Understand the score">
-          Each player is scored on three factors: expected prize money this week, an opportunity 
-          cost adjustment (should you save this player for a better week?), and a small 
-          differentiation bonus for players your opponent hasn't used yet.
+          Each player is scored on two factors: expected prize money this week and an opportunity
+          cost adjustment (should you save this player for a better week?).
         </Section>
         <Section step="4" title="Log your opponent's picks">
-          After picks lock each week, go to the <strong>Opponent</strong> tab and log what your 
-          opponent picked. This feeds into the differentiation score and flags conflicts in future 
-          recommendations.
+          After picks lock each week, go to the <strong>Opponent</strong> tab and log what your
+          opponent picked. This flags conflicts in future recommendations.
         </Section>
         <Section step="5" title="After you pick, add yourself">
           Once you've made your pick, go back to <strong>My picks</strong> and add that player 
@@ -59,10 +57,6 @@ export default function InstructionsTab() {
           future event offers meaningfully higher expected value, the player's score is 
           penalized and a "save for later" badge appears. Elite players (DataGolf rank ≤ 25) 
           in weak-field weeks are most likely to be flagged.</p>
-
-          <p style={para}><strong>Differentiation</strong> applies a small bonus to players 
-          your opponent hasn't used, and a small penalty to players they have. When expected 
-          values are close, this nudges you toward picks that diverge from your opponent.</p>
 
           <p style={para}><strong>Field strength</strong> is automatically accounted for — 
           DataGolf's win probabilities are calculated against the actual field each week, so 
