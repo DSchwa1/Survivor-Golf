@@ -20,12 +20,12 @@ function extractRankings(preds) {
 }
 
 function buildExplanation(player, isBigEvent, purse) {
-  const winPct = (player.winP * 100).toFixed(1)
+  const winPct  = (player.winP * 100).toFixed(1)
   const top10Pct = (player.top10P * 100).toFixed(0)
   const ev = Math.round(player.expPrize / 1000)
 
   if (player.saveWarning === 'hard' && player.bestFutureEvent) {
-    return `Strong pick this week (${winPct}% win, $${ev}k EV) but projected to earn more at ${player.bestFutureEvent} — consider saving.`
+    return `Strong pick this week (${winPct}% win, $${ev}k EV) but projected to earn significantly more at ${player.bestFutureEvent} — strongly consider saving.`
   }
   if (player.saveWarning === 'soft' && player.bestFutureEvent) {
     return `Solid option with ${winPct}% win chance and $${ev}k expected prize. A future event may offer slightly better value, but reasonable to play here.`
@@ -34,21 +34,18 @@ function buildExplanation(player, isBigEvent, purse) {
     return `Good pick this week. As an elite player, consider whether a better spot is coming before burning this pick.`
   }
   if (!player.saveWarning && player.isElite && isBigEvent) {
-    return `This is a good week to use ${player.name.split(' ').pop()} — elevated purse and their expected value here beats most future events.`
-  }
-  if (player.oppConflict) {
-    return `${winPct}% win probability and $${ev}k expected prize. Note: your opponent has already used this player, so no differentiation benefit.`
+    return `Good week to use ${player.name.split(' ').pop()} — elevated purse and their EV here beats most upcoming events.`
   }
   if (player.dgRank <= 10) {
-    return `Elite player with ${winPct}% win chance. ${top10Pct}% chance of a top-10 finish worth real money on a $${Math.round(purse/1e6)}M purse.`
+    return `Elite player with ${winPct}% win chance and ${top10Pct}% top-10 probability. Strong option on a $${Math.round(purse/1e6)}M purse.`
   }
   if (player.winP >= 0.05) {
     return `Solid upside — ${winPct}% win probability with a ${top10Pct}% top-10 chance. Good value pick this week.`
   }
-  return `${top10Pct}% top-10 probability. Lower ceiling but reliable mid-tier option if you're saving elite picks.`
+  return `${top10Pct}% top-10 probability. Lower ceiling but a reliable option if you're saving elite picks for later.`
 }
 
-export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefresh, debugData, scheduleDebug, remainingSchedule }) {
+export default function WeekTab({ preds, picks, loading, error, onRefresh, debugData, scheduleDebug, remainingSchedule }) {
   if (loading) return <div style={centered}>Loading tournament data...</div>
   if (error) return (
     <div style={centered}>
@@ -70,10 +67,9 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
   const isBigEvent = isEventMajorOrElevated(eventName, purse)
 
   const usedSet = new Set(picks.map(p => p.name.toLowerCase()))
-  const oppUsedSet = new Set(oppPicks.map(p => p.player.toLowerCase()))
 
   const recs = rankings.length > 0
-    ? buildRecommendations(rankings, usedSet, oppUsedSet, purse, eventName, remainingSchedule)
+    ? buildRecommendations(rankings, usedSet, purse, eventName, remainingSchedule)
     : []
 
   const top10 = recs.slice(0, 10)
@@ -87,9 +83,7 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
           <div style={eventMeta}>
             {course && <span>{course} · </span>}
             <span>${(purse / 1_000_000).toFixed(0)}M purse</span>
-            {remainingSchedule.length > 0 && (
-              <span> · {remainingSchedule.length} events remaining</span>
-            )}
+            {remainingSchedule.length > 0 && <span> · {remainingSchedule.length} events remaining</span>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -124,7 +118,6 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
                     samplePlayer: rankings[0] ?? null,
                     bhf_type: typeof debugData.baseline_history_fit,
                     bhf_is_array: Array.isArray(debugData.baseline_history_fit),
-                    bhf_players_length: debugData.baseline_history_fit?.players?.length ?? 'n/a',
                     scheduleKeys: scheduleDebug ? Object.keys(scheduleDebug) : 'null',
                     remainingScheduleCount: remainingSchedule.length,
                     sampleScheduleEvent: remainingSchedule[0] ?? null,
@@ -148,7 +141,7 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', fontFamily: 'system-ui, sans-serif', marginTop: 8 }}>
-        Scores combine expected prize money, opportunity cost vs. future events, and differentiation
+        Ranked by expected prize money · Opportunity cost applied to elite picks
       </div>
     </div>
   )
@@ -156,7 +149,6 @@ export default function WeekTab({ preds, picks, oppPicks, loading, error, onRefr
 
 function RecRow({ player, rank, isBigEvent, purse, explanation }) {
   const isTop3 = rank <= 3
-
   return (
     <div style={{ borderBottom: rank < 10 ? '1px solid var(--border)' : 'none', padding: '12px 0' }}>
       <div style={recRow}>
@@ -167,7 +159,6 @@ function RecRow({ player, rank, isBigEvent, purse, explanation }) {
             {player.saveWarning === 'hard' && <Badge type="red">Save for later</Badge>}
             {player.saveWarning === 'soft' && <Badge type="amber">Consider saving</Badge>}
             {!player.saveWarning && player.isElite && isBigEvent && <Badge type="green">Deploy now</Badge>}
-            {player.oppConflict && <Badge type="blue">Opp. burned</Badge>}
           </div>
           <div style={playerMeta}>
             Win: {(player.winP * 100).toFixed(1)}% · Top 10: {(player.top10P * 100).toFixed(0)}% · DG rank #{player.dgRank}

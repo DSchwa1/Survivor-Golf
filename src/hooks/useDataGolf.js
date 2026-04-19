@@ -18,13 +18,14 @@ export function useDataGolf() {
     setLoading(true)
     setError(null)
     try {
-      const [field, preds, schedule, playerList] = await Promise.all([
+      const [field, preds, schedule, playerList, dgRankings] = await Promise.all([
         dgFetch('field-updates', { tour: 'pga' }),
         dgFetch('pre-tournament', { tour: 'pga', add_position: '1,2,3' }),
         dgFetch('get-schedule', { tour: 'pga', upcoming_only: 'no' }),
         dgFetch('get-player-list'),
+        dgFetch('get-dg-rankings'),
       ])
-      return { field, preds, schedule, playerList }
+      return { field, preds, schedule, playerList, dgRankings }
     } catch (err) {
       setError(err.message)
       return null

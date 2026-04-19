@@ -3,13 +3,11 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { useDataGolf } from './hooks/useDataGolf'
 import PicksTab from './components/PicksTab'
 import WeekTab from './components/WeekTab'
-import OpponentTab from './components/OpponentTab'
 import InstructionsTab from './components/InstructionsTab'
 
 const TABS = [
   { id: 'week', label: 'This week' },
   { id: 'picks', label: 'My picks' },
-  { id: 'opponent', label: 'Opponent' },
   { id: 'info', label: 'How it works' },
 ]
 
@@ -18,7 +16,6 @@ const SEASON_PICKS = 31
 export default function App() {
   const [activeTab, setActiveTab] = useState('week')
   const [myPicks, setMyPicks] = useLocalStorage('sg_my_picks', [])
-  const [oppPicks, setOppPicks] = useLocalStorage('sg_opp_picks', [])
   const [preds, setPreds] = useState(null)
   const [playerPool, setPlayerPool] = useState([])
   const [remainingSchedule, setRemainingSchedule] = useState([])
@@ -32,33 +29,58 @@ export default function App() {
     const result = await fetchAll()
     if (!result) return
 
-    const { field, preds: predsData, schedule, playerList } = result
+    const { field, preds: predsData, schedule, playerList, dgRankings } = result
 
-    setDebugData(predsData)
-    setScheduleDebug(schedule)
-    if (predsData) setPreds(predsData)
+    // Build rank lookup maps from the dedicated rankings endpoint
+    const rankMap = {}
+    const rankByName = {}
+    if (dgRankings && Array.isArray(dgRankings)) {
+      dgRankings.forEach(p => {
+        const rank = p.datagolf_rank ?? p.dg_rank ?? p.rank ?? 999
+        if (p.dg_id) rankMap[p.dg_id] = rank
+        if (p.player_name) rankByName[p.player_name.toLowerCase()] = rank
+      })
+    }
 
-    // DataGolf schedule response: try multiple known shapes
-    // { schedule: [...] } or { seasons: [...] } or top-level array
+    // Inject dg_rank into predictions players
+    if (predsData) {
+      const injectRank = (players) => {
+        if (!Array.isArray(players)) return players
+        return players.map(p => ({
+          ...p,
+          dg_rank: rankMap[p.dg_id] ?? rankByName[p.player_name?.toLowerCase()] ?? p.dg_rank ?? 999
+        }))
+      }
+      const enriched = { ...predsData }
+      if (Array.isArray(enriched.baseline_history_fit)) {
+        enriched.baseline_history_fit = injectRank(enriched.baseline_history_fit)
+      } else if (enriched.baseline_history_fit?.players) {
+        enriched.baseline_history_fit = { ...enriched.baseline_history_fit, players: injectRank(enriched.baseline_history_fit.players) }
+      }
+      if (Array.isArray(enriched.baseline)) {
+        enriched.baseline = injectRank(enriched.baseline)
+      } else if (enriched.baseline?.players) {
+        enriched.baseline = { ...enriched.baseline, players: injectRank(enriched.baseline.players) }
+      }
+      setDebugData(enriched)
+      setPreds(enriched)
+    }
+
+    // Parse schedule
     if (schedule) {
+      setScheduleDebug(schedule)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-
       let events = []
       if (Array.isArray(schedule)) events = schedule
       else if (Array.isArray(schedule.schedule)) events = schedule.schedule
-      else if (Array.isArray(schedule.seasons)) {
-        // Flatten seasons array
-        events = schedule.seasons.flatMap(s => s.events || s.schedule || [])
-      } else {
-        // Try any array value in the object
+      else {
         const firstArray = Object.values(schedule).find(v => Array.isArray(v))
         if (firstArray) events = firstArray
       }
-
       const upcoming = events.filter(e => {
         const dateStr = e.date || e.start_date || e.event_date
-        if (!dateStr) return true // include if no date
+        if (!dateStr) return true
         const d = new Date(dateStr)
         d.setHours(0, 0, 0, 0)
         return d > today
@@ -66,24 +88,18 @@ export default function App() {
       setRemainingSchedule(upcoming)
     }
 
-    // Full player list for picks search
+    // Player pool for picks search
     if (playerList && Array.isArray(playerList)) {
       setPlayerPool(playerList.map(p => ({
         dg_id: p.dg_id,
         name: p.player_name,
-        rank: p.dg_rank ?? 999,
+        rank: rankMap[p.dg_id] ?? rankByName[p.player_name?.toLowerCase()] ?? 999,
       })).sort((a, b) => a.rank - b.rank))
     } else if (field && field.field) {
       setPlayerPool(field.field.map(p => ({
         dg_id: p.dg_id,
         name: p.player_name,
-        rank: p.dg_rank ?? 999,
-      })))
-    } else if (predsData && predsData.rankings) {
-      setPlayerPool(predsData.rankings.map(p => ({
-        dg_id: p.dg_id,
-        name: p.player_name,
-        rank: p.dg_rank ?? 999,
+        rank: rankMap[p.dg_id] ?? rankByName[p.player_name?.toLowerCase()] ?? 999,
       })))
     }
   }, [fetchAll])
@@ -97,12 +113,6 @@ export default function App() {
   }
   function removeMyPick(name) {
     setMyPicks(prev => prev.filter(p => p.name !== name))
-  }
-  function addOppPick(pick) {
-    setOppPicks(prev => [...prev, pick])
-  }
-  function removeOppPick(i) {
-    setOppPicks(prev => prev.filter((_, idx) => idx !== i))
   }
 
   return (
@@ -132,7 +142,6 @@ export default function App() {
             <WeekTab
               preds={preds}
               picks={myPicks}
-              oppPicks={oppPicks}
               loading={loading}
               error={error}
               onRefresh={loadData}
@@ -149,14 +158,6 @@ export default function App() {
               playerPool={playerPool}
               picksLeft={picksLeft}
               seasonPicks={SEASON_PICKS}
-            />
-          )}
-          {activeTab === 'opponent' && (
-            <OpponentTab
-              oppPicks={oppPicks}
-              myPicks={myPicks}
-              onAdd={addOppPick}
-              onRemove={removeOppPick}
             />
           )}
           {activeTab === 'info' && <InstructionsTab />}

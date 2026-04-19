@@ -19,12 +19,13 @@ export default async function handler(req, res) {
   }
 
   const ENDPOINT_MAP = {
-    'field-updates': '/field-updates',
-    'pre-tournament': '/preds/pre-tournament',
-    'get-schedule': '/get-schedule',
-    'get-player-list': '/get-player-list',
-    'skill-ratings': '/preds/skill-ratings',
-    'player-decompositions': '/preds/player-decompositions',
+    'field-updates':        '/field-updates',
+    'pre-tournament':       '/preds/pre-tournament',
+    'get-schedule':         '/get-schedule',
+    'get-player-list':      '/get-player-list',
+    'get-dg-rankings':      '/preds/get-dg-rankings',
+    'skill-ratings':        '/preds/skill-ratings',
+    'player-decompositions':'/preds/player-decompositions',
   }
 
   const path = ENDPOINT_MAP[endpoint]
