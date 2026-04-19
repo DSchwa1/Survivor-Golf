@@ -24,8 +24,9 @@ export default function InstructionsTab() {
         <div style={cardTitle}>How to use</div>
         <Section step="1" title="Add your used picks">
           Go to the <strong>My picks</strong> tab and add every player you've already picked 
-          this season. Do this once — picks are saved to your browser and will be there next 
+          this season. Do this once — picks are saved to your browser and will be there next
           time you open the app. These players are automatically excluded from recommendations.
+          Note: if you access the site on a different device, you'll need to re-enter your picks.
         </Section>
         <Section step="2" title="Check this week's recommendations">
           The <strong>This week</strong> tab shows the current tournament and ranks all available 
@@ -35,11 +36,7 @@ export default function InstructionsTab() {
           Each player is scored on two factors: expected prize money this week and an opportunity
           cost adjustment (should you save this player for a better week?).
         </Section>
-        <Section step="4" title="Log your opponent's picks">
-          After picks lock each week, go to the <strong>Opponent</strong> tab and log what your
-          opponent picked. This flags conflicts in future recommendations.
-        </Section>
-        <Section step="5" title="After you pick, add yourself">
+        <Section step="4" title="After you pick, add yourself">
           Once you've made your pick, go back to <strong>My picks</strong> and add that player 
           so they're excluded from future recommendations.
         </Section>
