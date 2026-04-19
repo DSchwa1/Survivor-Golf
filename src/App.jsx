@@ -34,8 +34,11 @@ export default function App() {
     // Build rank lookup maps from the dedicated rankings endpoint
     const rankMap = {}
     const rankByName = {}
-    if (dgRankings && Array.isArray(dgRankings)) {
-      dgRankings.forEach(p => {
+    const rankingsList = Array.isArray(dgRankings)
+      ? dgRankings
+      : (dgRankings?.rankings ?? dgRankings?.players ?? [])
+    if (rankingsList.length > 0) {
+      rankingsList.forEach(p => {
         const rank = p.datagolf_rank ?? p.dg_rank ?? p.rank ?? 999
         if (p.dg_id) rankMap[p.dg_id] = rank
         if (p.player_name) rankByName[p.player_name.toLowerCase()] = rank
