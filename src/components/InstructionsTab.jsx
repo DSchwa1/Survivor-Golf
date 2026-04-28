@@ -70,7 +70,10 @@ export default function InstructionsTab() {
           devices will reset your picks.</p>
           <p style={para}>• DataGolf predictions typically update Monday–Tuesday each week. 
           Early in the week, field data may not yet be available.</p>
-          <p style={para}>• This tool is for informational purposes only and does not guarantee 
+          <p style={para}>• The <strong>Schedule</strong> tab estimates future picks using DataGolf
+          player rankings only — no live field predictions exist until tournament week. Treat those
+          suggestions as a planning guide rather than a definitive ranking.</p>
+          <p style={para}>• This tool is for informational purposes only and does not guarantee
           any particular outcome.</p>
         </div>
       </div>

@@ -27,7 +27,7 @@ export function isMajor(eventName = '') {
   return MAJOR_NAMES.some(m => eventName.toLowerCase().includes(m))
 }
 
-function estimateFutureEV(dgRank, futureEventName, futurePurse) {
+export function estimateFutureEV(dgRank, futureEventName, futurePurse) {
   const isFutureMajor = isMajor(futureEventName)
   const isFutureElevated = isEventMajorOrElevated(futureEventName, futurePurse)
 

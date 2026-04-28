@@ -3,10 +3,12 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { useDataGolf } from './hooks/useDataGolf'
 import PicksTab from './components/PicksTab'
 import WeekTab from './components/WeekTab'
+import ScheduleTab from './components/ScheduleTab'
 import InstructionsTab from './components/InstructionsTab'
 
 const TABS = [
   { id: 'week', label: 'This week' },
+  { id: 'schedule', label: 'Schedule' },
   { id: 'picks', label: 'My picks' },
   { id: 'info', label: 'How it works' },
 ]
@@ -151,6 +153,13 @@ export default function App() {
               debugData={debugData}
               scheduleDebug={scheduleDebug}
               remainingSchedule={remainingSchedule}
+            />
+          )}
+          {activeTab === 'schedule' && (
+            <ScheduleTab
+              remainingSchedule={remainingSchedule}
+              playerPool={playerPool}
+              picks={myPicks}
             />
           )}
           {activeTab === 'picks' && (
