@@ -1,10 +1,10 @@
 const ELITE_THRESHOLD = 25
 const TOP_TIER_THRESHOLD = 5
-const MAJOR_NAMES = ['masters', 'us open', 'open championship', 'pga championship']
+const MAJOR_NAMES = ['masters', 'us open', 'u.s. open', 'open championship', 'the open', 'pga championship']
 
 const PURSE_MAP = [
   { keywords: ['players championship'], purse: 25_000_000 },
-  { keywords: ['masters', 'us open', 'open championship', 'pga championship'], purse: 21_000_000 },
+  { keywords: ['masters', 'us open', 'u.s. open', 'open championship', 'the open', 'pga championship'], purse: 21_500_000 },
   { keywords: ['genesis', 'arnold palmer', 'memorial', 'travelers', 'rbc canadian',
                'bmw championship', 'tour championship', 'rbc heritage', 'aon',
                'truist', 'cj cup', 'sentry', 'signature', 'scottish open'], purse: 20_000_000 },
